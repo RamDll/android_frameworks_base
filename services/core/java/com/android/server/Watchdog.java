@@ -138,6 +138,7 @@ public class Watchdog implements Dumpable {
         "/system/bin/vold",
         "media.extractor", // system/bin/mediaextractor
         "media.metrics", // system/bin/mediametrics
+        "/vendor/bin/hw/android.hardware.media.c2@1.2-mediatek-64b",
         "media.codec", // vendor/bin/hw/android.hardware.media.omx@1.0-service
         "media.swcodec", // /apex/com.android.media.swcodec/bin/mediaswcodec
         "media.transcoding", // Media transcoding service
