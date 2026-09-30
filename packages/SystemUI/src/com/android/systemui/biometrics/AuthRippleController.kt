@@ -339,10 +339,10 @@ constructor(
     private val udfpsControllerCallback =
         object : UdfpsController.Callback {
             override fun onFingerDown() {
-                // only show dwell ripple for device entry
-                if (keyguardUpdateMonitor.isFingerprintDetectionRunning) {
-                    showDwellRipple()
-                }
+                // No dwell ripple: on a quick tap of an optical sensor on AOD the finger-up doesn't
+                // reach us, so the bright ripple stayed up over the lifted finger until the failed
+                // attempt retracted it (~1 s) and looked like the sensor light was stuck. The
+                // unlocked ripple is unaffected.
             }
 
             override fun onFingerUp() {
