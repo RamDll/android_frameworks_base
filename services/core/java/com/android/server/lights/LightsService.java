@@ -32,8 +32,10 @@ import android.os.Looper;
 import android.os.PermissionEnforcer;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.Settings;
+import android.util.MathUtils;
 import android.util.Slog;
 import android.util.SparseArray;
 
@@ -288,6 +290,11 @@ public class LightsService extends SystemService {
         }
     }
 
+    /** Pass the backlight as a 16-bit value to a light HAL that understands it (device opt-in). */
+    private static final boolean PRECISE_BACKLIGHT =
+            SystemProperties.getBoolean("ro.config.precise_backlight", false);
+    private static final int PRECISE_BACKLIGHT_ALPHA = 0x01000000;
+
     private final class LightImpl extends LogicalLight {
 
         private LightImpl(Context context, HwLight hwLight) {
@@ -315,6 +322,13 @@ public class LightsService extends SystemService {
                 int brightnessInt = BrightnessSynchronizer.brightnessFloatToInt(brightness);
                 int color = brightnessInt & 0x000000ff;
                 color = 0xff000000 | (color << 16) | (color << 8) | color;
+                if (PRECISE_BACKLIGHT && brightnessInt > 0
+                        && mHwLight.type == LightsManager.LIGHT_ID_BACKLIGHT) {
+                    // A matching device light HAL reads alpha 0x01 as "the low 16 bits are the
+                    // brightness float", so the panel isn't limited to 255 backlight steps.
+                    int precise = Math.round(MathUtils.constrain(brightness, 0f, 1f) * 0xffff);
+                    color = PRECISE_BACKLIGHT_ALPHA | precise;
+                }
                 setLightLocked(color, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
             }
         }
