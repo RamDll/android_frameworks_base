@@ -1722,6 +1722,12 @@ public class BatteryStatsImpl extends BatteryStats {
     protected static final long MOBILE_RADIO_POWER_STATE_UPDATE_FREQ_MS = 1000 * 60 * 10;
 
     int mWifiRadioPowerState = DataConnectionRealTimeInfo.DC_POWER_STATE_LOW;
+    // Start of the current Wi-Fi radio active interval, -1 while inactive.
+    long mWifiRadioActiveStartElapsedMs = -1;
+    long mWifiRadioActiveStartUptimeMs = -1;
+
+    // Per-event Wi-Fi radio state log: adb shell setprop log.tag.BatteryStatsWifiRadio DEBUG
+    private static final String TAG_WIFI_RADIO = "BatteryStatsWifiRadio";
 
     private @NonNull String[] mCustomEnergyConsumerNames = new String[0];
 
@@ -6913,6 +6919,16 @@ public class BatteryStatsImpl extends BatteryStats {
             final boolean active =
                     powerState == DataConnectionRealTimeInfo.DC_POWER_STATE_MEDIUM
                             || powerState == DataConnectionRealTimeInfo.DC_POWER_STATE_HIGH;
+            if (Log.isLoggable(TAG_WIFI_RADIO, Log.DEBUG)) {
+                Slog.d(TAG_WIFI_RADIO, (active ? "on" : "off") + " uid=" + uid
+                        + " tsMs=" + timestampNs / 1000000
+                        + " elapsedMs=" + elapsedRealtimeMs + " uptimeMs=" + uptimeMs
+                        + " nowElapsedMs=" + SystemClock.elapsedRealtime()
+                        + " nowUptimeMs=" + SystemClock.uptimeMillis()
+                        + " startElapsedMs=" + mWifiRadioActiveStartElapsedMs
+                        + " startUptimeMs=" + mWifiRadioActiveStartUptimeMs
+                        + " onBattery=" + mOnBatteryTimeBase.isRunning());
+            }
             if (active) {
                 if (uid > 0) {
                     noteWifiRadioApWakeupLocked(elapsedRealtimeMs, uptimeMs, uid);
@@ -6920,10 +6936,14 @@ public class BatteryStatsImpl extends BatteryStats {
                 mHistory.recordStateStartEvent(elapsedRealtimeMs, uptimeMs,
                         HistoryItem.STATE_WIFI_RADIO_ACTIVE_FLAG);
                 mWifiActiveTimer.startRunningLocked(elapsedRealtimeMs);
+                mWifiRadioActiveStartElapsedMs = elapsedRealtimeMs;
+                mWifiRadioActiveStartUptimeMs = uptimeMs;
             } else {
                 mHistory.recordStateStopEvent(elapsedRealtimeMs, uptimeMs,
                         HistoryItem.STATE_WIFI_RADIO_ACTIVE_FLAG);
                 mWifiActiveTimer.stopRunningLocked(timestampNs / (1000 * 1000));
+                mWifiRadioActiveStartElapsedMs = -1;
+                mWifiRadioActiveStartUptimeMs = -1;
             }
             mWifiRadioPowerState = powerState;
         }
