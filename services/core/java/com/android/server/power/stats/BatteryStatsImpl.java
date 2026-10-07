@@ -439,9 +439,8 @@ public class BatteryStatsImpl extends BatteryStats {
                         // wifi.active, the power while the radio is active. Nothing calls
                         // noteWifiRunning() any more, so the "running" timer stays at zero (and it
                         // would mean "Wi-Fi on", not "radio active", anyway): use the radio
-                        // active timer fed by noteWifiRadioPowerState() instead.
-                        return getWifiActiveTime(mClock.elapsedRealtime() * 1000,
-                                STATS_SINCE_CHARGED) / 1000;
+                        // active intervals from noteWifiRadioPowerState(), counted in uptime.
+                        return getWifiRadioActiveUptimeLocked(mClock.uptimeMillis());
                     }
                 }
             };
@@ -1725,6 +1724,17 @@ public class BatteryStatsImpl extends BatteryStats {
     // Start of the current Wi-Fi radio active interval, -1 while inactive.
     long mWifiRadioActiveStartElapsedMs = -1;
     long mWifiRadioActiveStartUptimeMs = -1;
+
+    // Wi-Fi radio active time in uptime, i.e. without suspend, for WifiPowerStatsCollector.
+    // The "inactive" report from the wlan0 idle timer only arrives after the next resume, so an
+    // elapsed-realtime interval (mWifiActiveTimer) runs on through the whole suspend; the idle
+    // timeout itself only runs while awake, so the uptime of the interval is the real activity.
+    // Kept in memory only and never reset: the collector works on deltas within this process
+    // (after a reboot both start from zero), on/off battery and since-charged resets are split
+    // by the power stats aggregator, not here.
+    long mWifiRadioActiveUptimeMs;
+    long mWifiRadioActiveReportedMs;
+    long mWifiRadioActiveReportedUptimeMs = -1;
 
     // Per-event Wi-Fi radio state log: adb shell setprop log.tag.BatteryStatsWifiRadio DEBUG
     private static final String TAG_WIFI_RADIO = "BatteryStatsWifiRadio";
@@ -6942,11 +6952,36 @@ public class BatteryStatsImpl extends BatteryStats {
                 mHistory.recordStateStopEvent(elapsedRealtimeMs, uptimeMs,
                         HistoryItem.STATE_WIFI_RADIO_ACTIVE_FLAG);
                 mWifiActiveTimer.stopRunningLocked(timestampNs / (1000 * 1000));
+                if (mWifiRadioActiveStartUptimeMs >= 0) {
+                    mWifiRadioActiveUptimeMs +=
+                            Math.max(0, uptimeMs - mWifiRadioActiveStartUptimeMs);
+                }
                 mWifiRadioActiveStartElapsedMs = -1;
                 mWifiRadioActiveStartUptimeMs = -1;
             }
             mWifiRadioPowerState = powerState;
         }
+    }
+
+    /**
+     * Wi-Fi radio active time in uptime, including the interval still open, for
+     * WifiPowerStatsCollector. Never decreases and never grows faster than uptime between two
+     * calls (only one interval can be open, so this is a safety net).
+     */
+    @GuardedBy("this")
+    private long getWifiRadioActiveUptimeLocked(long uptimeMs) {
+        long total = mWifiRadioActiveUptimeMs;
+        if (mWifiRadioActiveStartUptimeMs >= 0) {
+            total += Math.max(0, uptimeMs - mWifiRadioActiveStartUptimeMs);
+        }
+        if (mWifiRadioActiveReportedUptimeMs >= 0) {
+            final long maxIncrease = Math.max(0, uptimeMs - mWifiRadioActiveReportedUptimeMs);
+            total = Math.max(mWifiRadioActiveReportedMs,
+                    Math.min(total, mWifiRadioActiveReportedMs + maxIncrease));
+        }
+        mWifiRadioActiveReportedMs = total;
+        mWifiRadioActiveReportedUptimeMs = uptimeMs;
+        return total;
     }
 
     @GuardedBy("this")
