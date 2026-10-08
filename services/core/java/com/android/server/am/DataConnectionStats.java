@@ -30,6 +30,7 @@ import android.telephony.NetworkRegistrationInfo;
 import android.telephony.PhoneStateListener;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
@@ -80,6 +81,18 @@ public class DataConnectionStats extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (action.equals(Intent.ACTION_SIM_STATE_CHANGED)) {
+            // The broadcast is sent per slot. Only the slot of the default subscription, which
+            // mPhoneStateListener follows, counts; otherwise an empty second slot (ABSENT)
+            // marks the data connection as out of service for good.
+            final int slot = intent.getIntExtra(SubscriptionManager.EXTRA_SLOT_INDEX,
+                    SubscriptionManager.INVALID_SIM_SLOT_INDEX);
+            final int defaultSlot = SubscriptionManager.getSlotIndex(
+                    SubscriptionManager.getDefaultSubscriptionId());
+            if (slot != SubscriptionManager.INVALID_SIM_SLOT_INDEX
+                    && defaultSlot != SubscriptionManager.INVALID_SIM_SLOT_INDEX
+                    && slot != defaultSlot) {
+                return;
+            }
             updateSimState(intent);
             notePhoneDataConnectionState();
         }
