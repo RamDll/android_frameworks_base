@@ -120,6 +120,11 @@ public class ChargingStatusProvider {
         final boolean hasChargingTime = chargingTimeRemaining > 0;
         if (mBatteryState.isPowerPluggedInWired()) {
             switch (mBatteryState.getChargingSpeed(mContext)) {
+                case BatteryStatus.CHARGING_SUPER_FAST:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_charging_time_super_fast
+                            : R.string.keyguard_plugged_in_charging_super_fast;
+                    break;
                 case BatteryStatus.CHARGING_FAST:
                     chargingId = hasChargingTime
                             ? R.string.keyguard_indication_charging_time_fast

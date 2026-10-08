@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 RamDll
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Max charging power (µW) above which the charger counts as super fast. 0 disables the tier. -->
+    <integer name="config_chargingSuperFastThreshold">30000000</integer>
+</resources>

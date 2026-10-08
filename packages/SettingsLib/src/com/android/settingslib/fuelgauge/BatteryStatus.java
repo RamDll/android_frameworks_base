@@ -51,6 +51,7 @@ public class BatteryStatus {
     public static final int CHARGING_SLOWLY = 0;
     public static final int CHARGING_REGULAR = 1;
     public static final int CHARGING_FAST = 2;
+    public static final int CHARGING_SUPER_FAST = 3;
     public static final int LOW_BATTERY_THRESHOLD = 20;
     public static final int SEVERE_LOW_BATTERY_THRESHOLD = 10;
     public static final int EXTREME_LOW_BATTERY_THRESHOLD = 3;
@@ -162,6 +163,9 @@ public class BatteryStatus {
         final int fastThreshold = context.getResources().getInteger(
                 getFastChargingThresholdResId());
 
+        if (isSuperFast(context, maxChargingWattage)) {
+            return CHARGING_SUPER_FAST;
+        }
         return maxChargingWattage <= 0 ? CHARGING_UNKNOWN :
                 maxChargingWattage < slowThreshold ? CHARGING_SLOWLY :
                         maxChargingWattage > fastThreshold ? CHARGING_FAST :
@@ -394,6 +398,8 @@ public class BatteryStatus {
 
         if (maxChargingMicroWatt <= 0) {
             return CHARGING_UNKNOWN;
+        } else if (isSuperFast(context, maxChargingMicroWatt)) {
+            return CHARGING_SUPER_FAST;
         } else if (maxChargingMicroWatt
                 < context.getResources().getInteger(R.integer.config_chargingSlowlyThreshold)) {
             return CHARGING_SLOWLY;
@@ -425,6 +431,13 @@ public class BatteryStatus {
         } else {
             return -1;
         }
+    }
+
+    // A threshold of 0 (the default) keeps the AOSP three speeds.
+    private static boolean isSuperFast(Context context, int maxChargingMicroWatt) {
+        final int superFastThreshold = context.getResources().getInteger(
+                R.integer.config_chargingSuperFastThreshold);
+        return superFastThreshold > 0 && maxChargingMicroWatt > superFastThreshold;
     }
 
     private static int getFastChargingThresholdResId() {

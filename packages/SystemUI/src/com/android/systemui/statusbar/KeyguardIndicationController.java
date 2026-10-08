@@ -1188,6 +1188,11 @@ public class KeyguardIndicationController {
         int chargingId;
         if (mPowerPluggedInWired) {
             switch (mChargingSpeed) {
+                case BatteryStatus.CHARGING_SUPER_FAST:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_charging_time_super_fast
+                            : R.string.keyguard_plugged_in_charging_super_fast;
+                    break;
                 case BatteryStatus.CHARGING_FAST:
                     chargingId = hasChargingTime
                             ? R.string.keyguard_indication_charging_time_fast

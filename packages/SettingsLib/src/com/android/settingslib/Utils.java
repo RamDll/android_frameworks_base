@@ -254,6 +254,10 @@ public class Utils {
                     statusString = getRegularChargingStatusString(res);
                 } else if (batteryStatus.isPluggedInWired()) {
                     switch (batteryStatus.getChargingSpeed(context)) {
+                        case BatteryStatus.CHARGING_SUPER_FAST:
+                            statusString = res.getString(
+                                    R.string.battery_info_status_charging_super_fast);
+                            break;
                         case BatteryStatus.CHARGING_FAST:
                             statusString = getFastChargingStatusString(res);
                             break;
